@@ -22,3 +22,13 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Frontend specifics
+/frontend/Quiz-Arena/dist/
+/frontend/Quiz-Arena/.vite/
+/frontend/Quiz-Arena/.env
+/frontend/Quiz-Arena/node_modules/
+
+# Backend specifics
+/backend/node_modules/
+/backend/.env

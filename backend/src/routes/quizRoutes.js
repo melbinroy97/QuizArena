@@ -1,16 +1,20 @@
 import express from "express";
-import { createQuiz, getMyQuizzes, getQuizById } from "../controllers/quizController.js";
+import {
+  createQuiz,
+  getMyQuizzes,
+  getQuizById,
+  addQuestion,
+  deleteQuiz,
+} from "../controllers/quizController.js";
 import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-// logged-in user can create quiz
+// All quiz routes require login
 router.post("/", protect, createQuiz);
-
-// get all quizzes created by current user
 router.get("/my", protect, getMyQuizzes);
-
-// get a single quiz by id
 router.get("/:id", protect, getQuizById);
+router.post("/:id/questions", protect, addQuestion);
+router.delete("/:id", protect, deleteQuiz);
 
 export default router;
