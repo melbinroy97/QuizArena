@@ -8,6 +8,7 @@ import {
   resendOtp,
   forgotPassword,
   resetPassword,
+  updateProfile,
 } from "../controllers/authController.js";
 import { protect } from "../middleware/authMiddleware.js";
 
@@ -22,6 +23,7 @@ router.post("/resend-otp", resendOtp);
 
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password", resetPassword);
+router.put("/profile", protect, updateProfile);
 
 
 

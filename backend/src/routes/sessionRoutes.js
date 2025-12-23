@@ -1,5 +1,5 @@
 import express from "express";
-import { createSession, joinSession, startSession, getCurrentQuestion, submitAnswer, nextQuestion, getLeaderboard, getSessionState, getQuizReview} from "../controllers/sessionController.js";
+import { createSession, joinSession, startSession, getCurrentQuestion, submitAnswer, nextQuestion, getLeaderboard, getSessionState, getQuizReview, leaveSession, getPlayedSessions } from "../controllers/sessionController.js";
 import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
@@ -10,6 +10,7 @@ const router = express.Router();
 router.post("/", protect, createSession); 
 router.post("/create", protect, createSession);
 router.post("/join", protect, joinSession);
+router.get("/history", protect, getPlayedSessions);
 router.post("/:sessionId/start", protect, startSession);
 router.get("/:sessionId/question", protect, getCurrentQuestion);
 router.post(
@@ -29,6 +30,9 @@ router.get(
   protect,
   getQuizReview
 );
+
+
+router.post("/:sessionId/leave", protect, leaveSession);
 
 
 export default router;

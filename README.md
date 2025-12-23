@@ -1,199 +1,141 @@
-# QuizzArena – Online Quiz Competition Management System (Backend & Integration Guide)
+# QuizzArena 🎮
 
-QuizzArena is a MERN-based platform for hosting online quiz competitions.  
-Users can create quizzes, generate join codes, host live quiz sessions, and let participants join and answer in real time.
+QuizzArena is a dynamic, real-time quiz platform designed for hosting and participating in interactive quiz competitions. Built with the MERN stack (MongoDB, Express, React, Node.js) and powered by Socket.io, it offers a seamless experience for quiz creators and players alike.
 
-This README explains:
+![QuizzArena Banner](https://placehold.co/1200x400/7c3aed/ffffff?text=QuizzArena)
 
-- What the backend already does
-- API endpoints and data formats
-- How authentication works
-- How quiz + session logic works
-- What the frontend team must build and keep in mind
+## ✨ Features
 
----
+### 🔐 Authentication & Security
+- **Secure Sign Up/Login:** JWT-based authentication using httpOnly cookies.
+- **Email Verification:** OTP-based email verification during registration.
+- **Password Recovery:** Secure forgot/reset password flows.
+- **Form Validation:** Robust client-side validation for all user inputs.
 
-## 📌 1. Project Overview
+### 👤 User Experience
+- **Profile Management:** Update user details and choose from generated avatars (powered by **DiceBear API**).
+- **Responsive Design:** Fully responsive UI built with **Tailwind CSS**.
+- **Smooth Animations:** Engaging transitions and effects using **Framer Motion**.
 
-Core idea:
+### 🧠 Quiz Management
+- **Create Quizzes:** Intuitive interface for creating quizzes with multiple-choice questions.
+- **Edit & Manage:** Update existing quizzes or delete them.
+- **Question Timer:** Set time limits for questions.
 
-- Logged-in users can create quizzes with multiple questions and options.
-- A **quiz session** can be created for any quiz; the system generates a **join code**.
-- Other logged-in users can join the session using the join code.
-- The host (quiz creator) controls starting the quiz and moving to next questions.
-- Participants answer questions in real time.
-- Backend tracks participants, answers, and status.
-
----
-
-## 🧱 2. Tech Stack
-
-**Backend**
-
-- Node.js
-- Express.js
-- MongoDB with Mongoose
-- JWT (JSON Web Token) stored in httpOnly cookies
-- bcryptjs (password hashing)
-- cors
-- dotenv
-- nodemon (development)
-
-**Frontend (expected)**
-
-- React + React Router
-- Tailwind CSS
-- Axios (with `withCredentials: true`)
+### ⚡ Real-Time Game Sessions
+- **Live Hosting:** Hosts can start sessions, generate unique join codes, and control the game flow.
+- **Real-Time Multiplayer:** Players join instantly using a code.
+- **Live Leaderboard:** Real-time score updates after every question.
+- **Socket.io Integration:** Low-latency communication for a synchronized experience.
 
 ---
 
-## 🗂 3. Backend Folder Structure
+## 🛠️ Tech Stack
 
+### Frontend
+- **Framework:** React (Vite)
+- **Styling:** Tailwind CSS
+- **Animations:** Framer Motion
+- **Icons:** Lucide React
+- **State/Networking:** Axios, Socket.io-client, React Router DOM
+
+### Backend
+- **Runtime:** Node.js
+- **Framework:** Express.js
+- **Database:** MongoDB (Mongoose)
+- **Real-Time:** Socket.io
+- **Auth:** JSON Web Tokens (JWT), Bcryptjs
+- **Email:** Nodemailer
+
+---
+
+## 🚀 Getting Started
+
+Follow these steps to set up the project locally.
+
+### Prerequisites
+- Node.js (v16+)
+- MongoDB (Local or Atlas)
+
+### 1. Clone the Repository
 ```bash
-backend/
-│
-├── src/
-│   ├── config/
-│   │   └── db.js                 # MongoDB connection
-│   │
-│   ├── controllers/
-│   │   ├── authController.js     # register, login, me, logout
-│   │   ├── quizController.js     # create quiz, list quizzes
-│   │   └── sessionController.js  # create session, join, start, next, answer
-│   │
-│   ├── middleware/
-│   │   ├── authMiddleware.js     # JWT protection
-│   │   └── errorHandler.js       # central error handler
-│   │
-│   ├── models/
-│   │   ├── user.js               # User schema
-│   │   ├── quiz.js               # Quiz schema
-│   │   └── quizzSession.js       # Quiz session schema
-│   │
-│   ├── routes/
-│   │   ├── authRoutes.js         # /api/auth/...
-│   │   ├── quizRoutes.js         # /api/quizzes/...
-│   │   └── sessionRoutes.js      # /api/sessions/...
-│   │
-│   ├── utils/
-│   │   └── app.js / server.js    # express app & server startup
-│   │
-│   └── server.js                 # main entry (depending on setup)
-│
-├── .env
-├── package.json
-└── README.md
+git clone https://github.com/melbinroy97/QuizzArena.git
+cd QuizzArena
+```
 
+### 2. Backend Setup
+Navigate to the backend folder and install dependencies:
+```bash
+cd backend
+npm install
+```
 
+Create a `.env` file in the `backend` directory:
+```env
+PORT=8080
+MONGO_URI=your_mongodb_connection_string
+JWT_SECRET=your_jwt_secret_key
+EMAIL_USER=your_email_address
+EMAIL_PASS=your_email_app_password
+FRONTEND_URL=http://localhost:5173
+```
 
-# QuizzArena – Frontend Responsibilities Guide
+Start the backend server:
+```bash
+npm run dev
+```
 
-This document explains what the backend already provides and what the frontend team must implement for QuizzArena. The backend is COMPLETE, so the frontend must follow this guide to correctly integrate with all API functionalities.
+### 3. Frontend Setup
+Open a new terminal, navigate to the frontend folder, and install dependencies:
+```bash
+cd frontend/Quiz-Arena
+npm install
+```
 
----
+Create a `.env` file in the `frontend/Quiz-Arena` directory (optional if using default localhost):
+```env
+VITE_API_URL=http://localhost:8080
+```
 
-## What the Backend Already Covers
-
-The backend has fully implemented:
-
-### 1. Authentication (JWT + Cookies)
-- Register user
-- Login user
-- Logout user
-- Get logged-in user (`/auth/me`)
-- Password hashing
-- JWT-based session handling
-
-### 2. User Model
-Includes:
-- username
-- fullName
-- email
-- password
-- role
-- totalScore
-- quizzesTaken
-
-### 3. Quiz Management
-Backend supports:
-- Creating quizzes
-- Adding multiple questions per quiz
-- Each question has:
-  - text
-  - array of options
-  - correctIndex
-
-### 4. Session Management
-Backend supports:
-- Creating quiz sessions
-- Generating join codes
-- Joining a session
-- Waiting room system
-- Starting a quiz
-- Fetching live questions
-- Host controls (“next question”)
-- Submitting answers
-- Tracking participants
-- Ending the quiz
-
-### 5. Real-time Polling Support
-Backend exposes these endpoints for the frontend to poll:
-- `/sessions/:sessionId/current`
-- `/sessions/:sessionId`
+Start the frontend development server:
+```bash
+npm run dev
+```
 
 ---
 
-## What the Frontend Team MUST Build
+## 📂 Project Structure
 
-The following pages and components must be created by the frontend. Each must follow the API structure provided by the backend.
+```
+QuizzArena/
+├── backend/                 # Express Server & API
+│   ├── src/
+│   │   ├── config/          # DB Connection
+│   │   ├── controllers/     # Route Logic
+│   │   ├── middleware/      # Auth & Error Handling
+│   │   ├── models/          # Mongoose Schemas
+│   │   ├── routes/          # API Routes
+│   │   ├── utils/           # Helpers (Email, Validation)
+│   │   ├── app.js           # App Configuration
+│   │   └── server.js        # Server Entry Point
+│
+├── frontend/Quiz-Arena/     # React Client
+│   ├── src/
+│   │   ├── api/             # Axios Setup
+│   │   ├── components/      # Reusable UI Components
+│   │   ├── context/         # Auth Context
+│   │   ├── layout/          # Page Layouts
+│   │   ├── pages/           # Application Pages
+│   │   ├── utils/           # Validation & Helpers
+│   │   ├── socket.js        # Socket.io Connection
+│   │   ├── App.jsx          # Main Component
+│   │   └── main.jsx         # Entry Point
+```
 
-### 1. Public Landing Page (Home)
-- Shows project introduction and features
-- Buttons: Login / Register
+## 🤝 Contributing
 
-### 2. Auth Pages
-- **Login Page**
-  - Calls `/auth/login`
-- **Register Page**
-  - Calls `/auth/register`
+Contributions are welcome! Please feel free to submit a Pull Request.
 
-### 3. Global Authentication System
-Frontend must:
-- Create `AuthContext`
-- Store logged-in user data
-- Fetch `/auth/me` on app load
-- Handle redirects if not logged in
+## 📄 License
 
-### 4. ProtectedRoute Component
-Wrap all pages that require login.
-
-### 5. Dashboard Page
-After login, dashboard must show:
-- User info
-- Buttons:
-  - Create Quiz
-  - My Quizzes
-  - Join Quiz
-  - Active Sessions (optional)
-
-### 6. Create Quiz Page
-Form must allow:
-- Quiz title
-- Description
-- Add multiple questions
-- Add options (4 per question)
-- Mark correct answer
-
-Send to backend as:
-```json
-{
-  "title": "",
-  "description": "",
-  "questions": [
-    {
-      "text": "",
-      "options": ["", "", "", ""],
-      "correctIndex": 0
-    }
-  ]
-}
+This project is licensed under the ISC License.

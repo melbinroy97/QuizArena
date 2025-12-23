@@ -15,6 +15,18 @@ const userSchema = new mongoose.Schema(
       trim: true,
     },
 
+    bio: {
+      type: String,
+      trim: true,
+      default: "",
+      maxlength: 160,
+    },
+
+    avatar: {
+      type: String,
+      default: "",
+    },
+
     email: {
       type: String,
       required: true,

@@ -1,107 +1,148 @@
 import Quiz from "../models/quiz.js";
 
-/* =========================
+/* =====================================================
    CREATE QUIZ
-========================= */
+===================================================== */
 export const createQuiz = async (req, res) => {
   try {
-    const { title, description, duration } = req.body;
+    const { title, description, questions } = req.body;
 
-    if (!title) {
-      return res.status(400).json({ message: "Quiz title is required" });
+    if (!title || !questions || questions.length === 0) {
+      return res.status(400).json({
+        message: "Title and at least one question are required",
+      });
+    }
+
+    // Validate questions
+    for (const q of questions) {
+      if (
+        !q.text ||
+        !q.options ||
+        q.options.length < 2 ||
+        q.correctIndex === undefined
+      ) {
+        return res.status(400).json({
+          message: "Each question must have text, at least 2 options and a correct index",
+        });
+      }
     }
 
     const quiz = await Quiz.create({
       title,
       description,
-      duration,
+      questions,
       createdBy: req.user._id,
-      questions: [],
     });
 
-    res.status(201).json({ quiz });
+    res.status(201).json({
+      success: true,
+      quiz,
+    });
   } catch (err) {
-    res.status(500).json({ message: "Failed to create quiz" });
+    console.error("CREATE QUIZ ERROR:", err);
+    res.status(500).json({ message: "Server error" });
   }
 };
 
-/* =========================
+/* =====================================================
    GET MY QUIZZES
-========================= */
+===================================================== */
 export const getMyQuizzes = async (req, res) => {
   try {
-    const quizzes = await Quiz.find({ createdBy: req.user._id });
-    res.json({ quizzes });
-  } catch {
-    res.status(500).json({ message: "Failed to fetch quizzes" });
+    const quizzes = await Quiz.find({ createdBy: req.user._id })
+      .sort({ createdAt: -1 });
+
+    res.json({
+      success: true,
+      quizzes,
+    });
+  } catch (err) {
+    console.error("GET MY QUIZZES ERROR:", err);
+    res.status(500).json({ message: "Server error" });
   }
 };
 
-/* =========================
-   GET QUIZ BY ID
-========================= */
+/* =====================================================
+   GET SINGLE QUIZ
+===================================================== */
 export const getQuizById = async (req, res) => {
   try {
-    const quiz = await Quiz.findById(req.params.id);
+    const quiz = await Quiz.findById(req.params.quizId);
 
     if (!quiz) {
       return res.status(404).json({ message: "Quiz not found" });
     }
 
-    // Only creator can view full quiz
     if (quiz.createdBy.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ message: "Unauthorized" });
+      return res.status(403).json({ message: "Access denied" });
     }
 
-    res.json({ quiz });
-  } catch {
-    res.status(500).json({ message: "Failed to fetch quiz" });
+    res.json({
+      success: true,
+      quiz,
+    });
+  } catch (err) {
+    console.error("GET QUIZ ERROR:", err);
+    res.status(500).json({ message: "Server error" });
   }
 };
 
-/* =========================
-   ADD QUESTION
-========================= */
-export const addQuestion = async (req, res) => {
+/* =====================================================
+   UPDATE QUIZ
+===================================================== */
+export const updateQuiz = async (req, res) => {
   try {
-    const { text, options, correctIndex } = req.body;
-    const quiz = await Quiz.findById(req.params.id);
+    const { title, description, questions } = req.body;
+
+    const quiz = await Quiz.findById(req.params.quizId);
 
     if (!quiz) {
       return res.status(404).json({ message: "Quiz not found" });
     }
 
     if (quiz.createdBy.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ message: "Unauthorized" });
+      return res.status(403).json({ message: "Access denied" });
     }
 
-    quiz.questions.push({ text, options, correctIndex });
+    quiz.title = title ?? quiz.title;
+    quiz.description = description ?? quiz.description;
+    quiz.questions = questions ?? quiz.questions;
+
     await quiz.save();
 
-    res.json({ message: "Question added", quiz });
-  } catch {
-    res.status(500).json({ message: "Failed to add question" });
+    res.json({
+      success: true,
+      quiz,
+    });
+  } catch (err) {
+    console.error("UPDATE QUIZ ERROR:", err);
+    res.status(500).json({ message: "Server error" });
   }
 };
 
-/* =========================
+/* =====================================================
    DELETE QUIZ
-========================= */
+===================================================== */
 export const deleteQuiz = async (req, res) => {
   try {
-    const quiz = await Quiz.findById(req.params.id);
+    const quiz = await Quiz.findById(req.params.quizId);
 
     if (!quiz) {
       return res.status(404).json({ message: "Quiz not found" });
     }
 
     if (quiz.createdBy.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ message: "Unauthorized" });
+      return res.status(403).json({ message: "Access denied" });
     }
 
     await quiz.deleteOne();
-    res.json({ message: "Quiz deleted" });
-  } catch {
-    res.status(500).json({ message: "Failed to delete quiz" });
+
+    res.json({
+      success: true,
+      message: "Quiz deleted successfully",
+    });
+  } catch (err) {
+    console.error("DELETE QUIZ ERROR:", err);
+    res.status(500).json({ message: "Server error" });
   }
 };

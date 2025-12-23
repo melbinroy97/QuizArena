@@ -29,6 +29,7 @@ const sendToken = (user, res) => {
       fullName: user.fullName,
       email: user.email,
       role: user.role,
+      avatar: user.avatar,
     },
   });
 };
@@ -268,3 +269,49 @@ export const resetPassword = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+/* =========================
+   UPDATE PROFILE
+========================= */
+export const updateProfile = async (req, res) => {
+  try {
+    const { username, fullName, bio, password, avatar } = req.body;
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (username && username !== user.username) {
+      const usernameExists = await User.findOne({ username });
+      if (usernameExists) {
+        return res.status(400).json({ message: "Username already taken" });
+      }
+      user.username = username;
+    }
+
+    if (fullName !== undefined) user.fullName = fullName;
+    if (bio !== undefined) user.bio = bio;
+    if (avatar !== undefined) user.avatar = avatar;
+    if (password) user.password = password; // Will be hashed by pre-save hook
+
+    await user.save();
+
+    res.json({
+      message: "Profile updated successfully",
+      user: {
+        id: user._id,
+        username: user.username,
+        fullName: user.fullName,
+        email: user.email,
+        role: user.role,
+        avatar: user.avatar,
+        bio: user.bio,
+      },
+    });
+  } catch (err) {
+    console.error("UPDATE PROFILE ERROR:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+

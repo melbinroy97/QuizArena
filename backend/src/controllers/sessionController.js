@@ -368,6 +368,7 @@ export const getLeaderboard = async (req, res) => {
     res.json({
       success: true,
       status: session.status,
+      joinCode: session.joinCode,
       leaderboard,
     });
   } catch (err) {
@@ -411,6 +412,7 @@ export const getSessionState = async (req, res) => {
     res.json({
       success: true,
       status: session.status,
+      joinCode: session.joinCode,
       question,
       leaderboard: session.participants
         .map((p) => ({
@@ -487,6 +489,153 @@ export const getQuizReview = async (req, res) => {
     });
   } catch (err) {
     console.error("GET QUIZ REVIEW ERROR:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+
+
+
+
+
+
+/* =====================================================
+   LEAVE QUIZ SESSION (PLAYER / HOST)
+===================================================== */
+export const leaveSession = async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const userId = req.user._id;
+    const userIdStr = userId.toString();
+
+    const session = await QuizSession.findById(sessionId).populate(
+      "participants.user",
+      "username fullName"
+    );
+
+    if (!session) {
+      return res.status(404).json({ message: "Session not found" });
+    }
+
+    const io = req.app.get("io");
+
+    // If HOST leaves → end session and notify everyone
+    if (session.host.toString() === userIdStr) {
+      session.status = "ended";
+      session.endedAt = new Date();
+      session.allowAnswers = false;
+      await session.save();
+
+      // notify clients that quiz ended / host left
+      io.to(session._id.toString()).emit("quiz-ended", {
+        message: "Host ended the session",
+        hostId: userIdStr,
+      });
+      io.to(session._id.toString()).emit("host-left", {
+        hostId: userIdStr,
+      });
+
+      return res.json({
+        success: true,
+        message: "Host left. Session ended.",
+        ended: true,
+      });
+    }
+
+    // Find index of leaving participant (works whether populated or not)
+    const idx = session.participants.findIndex((p) => {
+      const pid =
+        p.user && (p.user._id ? p.user._id.toString() : p.user.toString());
+      return pid === userIdStr;
+    });
+
+    if (idx === -1) {
+      return res.status(400).json({ message: "User not in session" });
+    }
+
+    // remove and capture leaving participant for username
+    const [leaving] = session.participants.splice(idx, 1);
+    await session.save();
+
+    // build updated leaderboard / participant list to send to clients
+    const leaderboard = session.participants
+      .map((p) => ({
+        userId:
+          p.user && p.user._id ? p.user._id.toString() : p.user.toString(),
+        username: p.user?.username || null,
+        fullName: p.user?.fullName || null,
+        score: p.score || 0,
+      }))
+      .sort((a, b) => b.score - a.score);
+
+    // derive username robustly
+    let username =
+      leaving?.user?.username || leaving?.user?.fullName || req.user?.username;
+
+    if (!username) {
+      const u = await User.findById(userId).select("username fullName");
+      username = u?.username || u?.fullName || "A player";
+    }
+
+    // notify host and remaining players
+    io.to(session._id.toString()).emit("player-left", {
+      userId: userIdStr,
+      leaderboard,
+      username,
+      participantsCount: session.participants.length,
+    });
+
+    return res.json({
+      success: true,
+      message: "Left session successfully",
+      leaderboard,
+    });
+  } catch (err) {
+    console.error("LEAVE SESSION ERROR:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+/* =====================================================
+   GET PLAYED SESSIONS (HISTORY)
+===================================================== */
+export const getPlayedSessions = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    // Find sessions where the user is a participant
+    const sessions = await QuizSession.find({
+      "participants.user": userId,
+      status: "ended",
+    })
+      .populate("quiz", "title questions")
+      .sort({ endedAt: -1 });
+
+    const history = sessions.map((session) => {
+      const participant = session.participants.find(
+        (p) => p.user.toString() === userId.toString()
+      );
+
+      if (!participant) return null;
+
+      const totalQuestions = session.quiz?.questions?.length || 0;
+      const correctAnswers = participant.answers.filter((a) => a.isCorrect).length;
+      const accuracy = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0;
+
+      return {
+        sessionId: session._id,
+        quizTitle: session.quiz?.title || "Unknown Quiz",
+        playedAt: session.endedAt || session.updatedAt,
+        score: participant.score,
+        accuracy,
+        totalQuestions,
+        correctAnswers,
+      };
+    }).filter(Boolean);
+
+    res.json({ success: true, history });
+  } catch (err) {
+    console.error("GET HISTORY ERROR:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
