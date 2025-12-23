@@ -14,12 +14,12 @@ const createToken = (id) =>
 const sendToken = (user, res) => {
   const token = createToken(user._id);
 
-  res.cookie("jwt", token, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    maxAge: 24 * 60 * 60 * 1000,
-  });
+  res.cookie('jwt', token, {
+  httpOnly: true,
+  secure: true,            // ⚠️ CRITICAL: Must be true on Render (HTTPS)
+  sameSite: 'none',        // ⚠️ CRITICAL: Must be 'none' for cross-domain
+  maxAge: 24 * 60 * 60 * 1000 // 1 day
+});
 
   res.json({
     success: true,
@@ -204,7 +204,12 @@ export const getMe = (req, res) => {
    LOGOUT
 ========================= */
 export const logout = (req, res) => {
-  res.cookie("jwt", "", { httpOnly: true, expires: new Date(0) });
+  res.cookie("jwt", "", { 
+    httpOnly: true, 
+    secure: true,       // Add this
+    sameSite: "none",   // Add this
+    expires: new Date(0) 
+  });
   res.json({ message: "Logged out" });
 };
 
