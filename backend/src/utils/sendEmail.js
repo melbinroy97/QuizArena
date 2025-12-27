@@ -1,21 +1,19 @@
 import nodemailer from "nodemailer";
 
-// debug whether env vars are present (DO NOT log the secret value)
+// debug whether env vars are present
 console.log("DEBUG: EMAIL_USER:", !!process.env.EMAIL_USER, "EMAIL_PASS set:", !!process.env.EMAIL_PASS);
 
 const transporter = nodemailer.createTransport({
-  service: "gmail", // Use built-in settings for Gmail
+  host: "smtp-relay.brevo.com", 
+  port: 587,
+  secure: false, // true for 465, false for other ports
   auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
+    user: process.env.EMAIL_USER, // Your Brevo login email
+    pass: process.env.EMAIL_PASS, // Your Brevo SMTP Key
   },
-  // CRITICAL FIX: Force IPv4. 
-  // Cloud containers often hang on IPv6 connections to Gmail.
-  family: 4, 
-  
-  // Enable detailed logs to see the handshake process
-  logger: true,
-  debug: true, 
+  // Timeout settings
+  connectionTimeout: 10000,
+  greetingTimeout: 10000,
 });
 
 export const sendOtpEmail = async (email, otp) => {
@@ -25,7 +23,7 @@ export const sendOtpEmail = async (email, otp) => {
     await transporter.verify();
     
     await transporter.sendMail({
-      from: `"QuizzArena" <${process.env.EMAIL_USER}>`,
+      from: `"QuizzArena" <${process.env.EMAIL_USER}>`, // Must be a verified sender in Brevo
       to: email,
       subject: "Verify your QuizzArena account",
       html: `
