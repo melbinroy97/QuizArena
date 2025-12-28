@@ -4,13 +4,16 @@ import nodemailer from "nodemailer";
 console.log("DEBUG: EMAIL_USER:", !!process.env.EMAIL_USER, "EMAIL_PASS set:", !!process.env.EMAIL_PASS);
 
 const transporter = nodemailer.createTransport({
-  host: "smtp-relay.brevo.com", 
+  host: "smtp-relay.brevo.com",
   port: 587,
   secure: false, // true for 465, false for other ports
   auth: {
-    user: process.env.EMAIL_USER, // Your Brevo login email
-    pass: process.env.EMAIL_PASS, // Your Brevo SMTP Key
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
   },
+  // CRITICAL FIX: Force IPv4 to prevent Render timeouts
+  family: 4, 
+  
   // Timeout settings
   connectionTimeout: 10000,
   greetingTimeout: 10000,
@@ -23,7 +26,7 @@ export const sendOtpEmail = async (email, otp) => {
     await transporter.verify();
     
     await transporter.sendMail({
-      from: `"QuizzArena" <${process.env.EMAIL_USER}>`, // Must be a verified sender in Brevo
+      from: `"QuizzArena" <${process.env.EMAIL_USER}>`,
       to: email,
       subject: "Verify your QuizzArena account",
       html: `
